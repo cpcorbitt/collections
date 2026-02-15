@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collection Lawsuit Intake – Corbitt Law Firm</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    h1 { color: #0066cc; text-align: center; }
+    label { display: block; margin: 1.4rem 0 0.5rem; font-weight: bold; }
+    input, textarea { width: 100%; padding: 0.7rem; box-sizing: border-box; font-size: 1.05rem; border: 1px solid #ccc; border-radius: 4px; }
+    button { margin: 2.5rem auto; padding: 1rem 2.5rem; font-size: 1.2rem; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; display: block; }
+    button:hover { background: #0055aa; }
+    .note, .warning { background: #f0f8ff; padding: 1.2rem; border-left: 5px solid #0066cc; margin: 2rem 0; border-radius: 4px; }
+    .warning { background: #fff3f3; border-left-color: #cc0000; }
+  </style>
+</head>
+<body>
+
+<h1>Collection Lawsuit Client Intake</h1>
+<p style="text-align:center; font-style:italic;">Corbitt Law Firm, PLLC – Generate filled Arkansas District Court Complaint</p>
+
+<div class="note">
+  <strong>For clients:</strong> Enter the details below. Click Generate to download a .docx complaint ready for review/filing.<br>
+  • Attach Exhibit A (Credit Agreement), Exhibit B (Invoices), Exhibit C (Affidavit of Account) manually after download.<br>
+  • Filing typically in the District Court of the defendant's county; fees ~$30–$65 + service.
+</div>
+
+<div class="warning">
+  <strong>Important:</strong> This generates a civil complaint with multiple counts (including attorney fees, disgorgement, etc.). For debts ≤ $5,000, small claims division may be simpler/faster (no attorneys needed). Consult if unsure.
+</div>
+
+<form id="form">
+  <label>County Name (e.g., Faulkner):</label>
+  <input type="text" id="county_name" required placeholder="Faulkner">
+
+  <label>Creditor / Plaintiff Name:</label>
+  <input type="text" id="creditor_name" required placeholder="US LMB OPERATING CO. 2009, LLC">
+
+  <label>Debtor / Defendant Full Name:</label>
+  <input type="text" id="debtor_name" required>
+
+  <label>Debtor Address (full, including city/state/zip):</label>
+  <textarea id="debtor_address" rows="3" required placeholder="123 Main Street, Conway, AR 72034"></textarea>
+
+  <label>Amount Due ($):</label>
+  <input type="number" id="amount_due" step="0.01" min="0.01" required placeholder="1234.56">
+
+  <button type="button" onclick="generateDocument()">Generate Complaint (.docx)</button>
+</form>
+
+<!-- Libraries – using stable recent versions -->
+<script src="https://unpkg.com/docxtemplater@3.67.6/build/docxtemplater.js"></script>
+<script src="https://unpkg.com/pizzip@3.1.8/dist/pizzip.js"></script>
+<script src="https://unpkg.com/pizzip-utils@3.1.8/dist/pizzip-utils.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<script>
+const TEMPLATE_URL = "https://your-hosted-domain.com/collection-complaint-template.docx"; // ← CHANGE THIS to your actual public URL
+
+async function generateDocument() {
+  const amountInput = document.getElementById("amount_due").value;
+  if (!amountInput) return alert("Please enter the amount due.");
+
+  const data = {
+    county_name: document.getElementById("county_name").value.trim(),
+    creditor_name: document.getElementById("creditor_name").value.trim(),
+    debtor_name: document.getElementById("debtor_name").value.trim(),
+    debtor_address: document.getElementById("debtor_address").value.trim(),
+    amount_due: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(parseFloat(amountInput)),
+    current_date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  };
+
+  try {
+    const resp = await fetch(TEMPLATE_URL);
+    if (!resp.ok) throw new Error(`Template load failed: ${resp.status} – check URL & CORS`);
+
+    const buffer = await resp.arrayBuffer();
+    const zip = new PizZip(buffer);
+    const doc = new docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+
+    doc.render(data);
+
+    const blob = doc.getZip().generate({
+      type: "blob",
+      mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    });
+
+    const safeName = (data.debtor_name || "Debtor").replace(/[^a-zA-Z0-9]/g, '-');
+    saveAs(blob, `Complaint_vs_${safeName}_${new Date().toISOString().slice(0,10)}.docx`);
+
+    alert("Success! Document downloaded.\n\nNext steps:\n1. Open & review in Word.\n2. Attach Exhibits A/B/C.\n3. File with District Court clerk (venue: defendant's county).");
+  } catch (err) {
+    console.error(err);
+    alert("Generation failed:\n" + err.message + "\n\nCommon fixes:\n- Verify TEMPLATE_URL is correct & public.\n- Ensure template has {county_name}, {creditor_name}, etc.\n- Try different browser if CORS issue.");
+  }
+}
+</script>
+
+</body>
+</html>
